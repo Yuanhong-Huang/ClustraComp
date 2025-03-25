@@ -25,6 +25,7 @@ void DeltaCompression::AddFile(const std::string &file_name) {
   file_meta.file_name = file_name;
   file_meta.start_chunk_id = -1;
   this->chunker_->ReinitWithFile(file_name);  // 初始化chunker
+  std::cout << "chunking and grouping..." << '\n';
   while (true) {
     auto chunk = chunker_->GetNextChunk(); // fastCDC取一个数据块
     if (nullptr == chunk) // 没数据块就break
@@ -96,7 +97,7 @@ void DeltaCompression::AddFile(const std::string &file_name) {
     // 根据feature查找base block
     auto base_chunk_id = index_->GetBaseChunkID(feature);
     if (!base_chunk_id.has_value()) { // 没找到base block
-      LOG(INFO) << "No base chunk found for chunk ";
+      //LOG(INFO) << "No base chunk found for chunk ";
       index_->AddFeature(feature, chunk->id());
       write_base_chunk(chunk); // 将当前块作为base block
       auto end = std::chrono::high_resolution_clock::now();
@@ -115,7 +116,7 @@ void DeltaCompression::AddFile(const std::string &file_name) {
     file_meta.end_chunk_id = chunk->id();
   }
   file_meta_writer_.Write(file_meta);
-
+  std::cout << "compressing..." << '\n';
   // 压缩
   storage_->groupByBase(16, total_size_origin_,total_size_compressed_,grouping_num_,grouping_blocks_, 
                             sequence_compressed_size_, single_compressed_size_, zstd_total_size_compressed_,
@@ -135,8 +136,7 @@ DeltaCompression::~DeltaCompression() {
   LOG(INFO) << "before: " << total_size_origin_ << "----> "
             << " after: " << single_compressed_size_;
   double ratio1 = (double)total_size_origin_ / (double)single_compressed_size_;
-  LOG(INFO) << "original compression ratio: " << std::fixed << std::setprecision(1) 
-            << ratio1 * 100 << "%" << std::defaultfloat;
+  LOG(INFO) << "original compression ratio: " << ratio1;
   //print_ratio(total_size_origin_, single_compressed_size_);
   LOG(INFO) << "";
   // lz4 clustering总压缩比
@@ -144,8 +144,7 @@ DeltaCompression::~DeltaCompression() {
   LOG(INFO) << "before: " << total_size_origin_ << "----> "
             << " after: " << total_size_compressed_;
   double ratio2 = (double)total_size_origin_ / (double)total_size_compressed_;
-  LOG(INFO) << "compression ratio after grouping: " << std::fixed << std::setprecision(1) 
-            << ratio2 * 100 << "%" << std::defaultfloat;
+  LOG(INFO) << "compression ratio after grouping: " << ratio2;
 
   LOG(INFO) << "compression improvement: " << (ratio2 / ratio1) << "x";
             
@@ -155,7 +154,7 @@ DeltaCompression::~DeltaCompression() {
   // zstd single
   LOG(INFO) << "====original compression====";
   LOG(INFO) << "before: " << total_size_origin_ << "  ----> "
-            << " after: " << single_compressed_size_;
+            << " after: " << zstd_single_size_compressed_;
   double ratio3 = (double)total_size_origin_ / (double)zstd_single_size_compressed_;
   LOG(INFO) << "original compression ratio: " << ratio3; 
   LOG(INFO) << "";

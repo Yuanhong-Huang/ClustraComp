@@ -47,7 +47,7 @@ void Storage::WriteBaseChunk(std::shared_ptr<Chunk> chunk) {
   fwrite(chunk->buf(), 1, chunk->len(), data_);
   // 写入chunk元数据到meta_指向的文件
   fwrite(&meta, sizeof(ChunkMeta), 1, meta_);
-  LOG(INFO) << "write base chunk " << chunk->id() << ", len " << chunk->len();
+  //LOG(INFO) << "write base chunk " << chunk->id() << ", len " << chunk->len();
 }
 
 std::shared_ptr<Chunk>
@@ -75,8 +75,8 @@ int Storage::WriteDeltaChunk(std::shared_ptr<Chunk> delta_chunk,
 
   fwrite(delta_chunk->buf(), 1, delta_chunk->len(), data_);
   fwrite(&meta, sizeof(ChunkMeta), 1, meta_);
-  LOG(INFO) << "write delta chunk " << delta_chunk->id() << ", len "
-            << delta_chunk->len();
+  /*LOG(INFO) << "write delta chunk " << delta_chunk->id() << ", len "
+            << delta_chunk->len();*/
   return delta_chunk->len();
 }
 
@@ -116,8 +116,8 @@ void Storage::WriteDuplicateChunk(std::shared_ptr<Chunk> chunk,
   meta.offset = base_meta.offset;
   fseek(meta_, 0, SEEK_END);
   fwrite(&meta, sizeof(ChunkMeta), 1, meta_);
-  LOG(INFO) << "write duplicate chunk " << chunk->id() << ", base id "
-            << base_chunk_id;
+  /*LOG(INFO) << "write duplicate chunk " << chunk->id() << ", base id "
+            << base_chunk_id;*/
 }
 
 std::map<chunk_id, std::vector<std::shared_ptr<Chunk>>> Storage::dividByBase(
@@ -156,12 +156,12 @@ std::map<chunk_id, std::vector<std::shared_ptr<Chunk>>> Storage::dividByBase(
     chunk_id current_id = meta.offset / 8192;  // for no delta encode
     
     // single compress
-    LOG(INFO) << "========single compression=========";
-    LOG(INFO) << "current_id: " << current_id << " base: " << meta.base_chunk_id;
+    /*LOG(INFO) << "========single compression=========";
+    LOG(INFO) << "current_id: " << current_id << " base: " << meta.base_chunk_id;*/
 
     // 从文件读入块内容 也可以（GetChunkContent）
     auto chunk = Chunk::FromFileStream(data_, meta.size, current_id);
-    LOG(INFO) << "offset: " << meta.offset << ",base_chunk_id: " << meta.base_chunk_id << ", type: " << (char)meta.type;
+    //LOG(INFO) << "offset: " << meta.offset << ",base_chunk_id: " << meta.base_chunk_id << ", type: " << (char)meta.type;
 
     // lz4 single
     LZ4F_preferences_t kPrefs0 = {};
@@ -245,8 +245,8 @@ void Storage::groupByBase(size_t group_size,
   // 遍历聚合块
   for (const auto &[base_chunk_id, delta_chunks] : grouped_chunks) 
   {
-    LOG(INFO) << "------lz4 cluster compression start------";
-    LOG(INFO) << "Processing base chunk ID: " << base_chunk_id << " grouped " << delta_chunks.size() << " blocks";
+    //LOG(INFO) << "------lz4 cluster compression start------";
+    //LOG(INFO) << "Processing base chunk ID: " << base_chunk_id << " grouped " << delta_chunks.size() << " blocks";
     auto test_base_chunk = GetChunkContent(base_chunk_id);
     std::vector<unsigned char> content(test_base_chunk->buf(), test_base_chunk->buf() + test_base_chunk->len());
     
@@ -254,13 +254,13 @@ void Storage::groupByBase(size_t group_size,
     // 单独压没有group起来的base块
     if(delta_chunks.empty())
     {
-      LOG(INFO) << "base chunk id: " << base_chunk_id << " has no delta chunk";
+      //LOG(INFO) << "base chunk id: " << base_chunk_id << " has no delta chunk";
       auto base_chunk = GetChunkContent(base_chunk_id);
       size_t src_size = base_chunk->len();
       
       // lz4
       char* src_data = new char[src_size];
-      LOG(INFO) << "compress not group block";
+      //LOG(INFO) << "compress not group block";
       // src_data = new char[src_size];
       memcpy(src_data, base_chunk->buf(), base_chunk->len()); // 将base块内容拷贝到src_data
       size_t max_dst_size = LZ4_compressBound(src_size);
@@ -334,7 +334,7 @@ void Storage::groupByBase(size_t group_size,
       {
         // TEST base块一起压flag
         base_comp = true;
-        LOG(INFO) << "compress with base block";
+        //LOG(INFO) << "compress with base block";
         // 获取base块数据内容
         auto base_chunk = GetChunkContent(base_chunk_id);
         src_size += base_chunk->len();
@@ -381,7 +381,7 @@ void Storage::groupByBase(size_t group_size,
       auto base_chunk = GetChunkContent(base_chunk_id);
       size_t src_size = base_chunk->len();
       char* src_data = new char[src_size];
-      LOG(INFO) << "compress base block";
+      //LOG(INFO) << "compress base block";
       memcpy(src_data, base_chunk->buf(), base_chunk->len()); // 将base块内容拷贝到src_data
       size_t max_dst_size = LZ4_compressBound(src_size);
       char* compressed_data = new char[max_dst_size];
