@@ -1,0 +1,8 @@
+# Build outputs
+/build/
+/lib/
+/ClustraComp
+
+# Generated test data and logs
+/test_data.bin
+/logs/
